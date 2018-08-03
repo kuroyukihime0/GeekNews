@@ -2,10 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.codeest.geeknews">
 
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.READ_LOGS" />
 
     <application
         android:name="com.codeest.geeknews.app.App"
@@ -28,7 +30,7 @@
         </activity>
         <activity android:name="com.codeest.geeknews.ui.main.activity.MainActivity"
             android:launchMode="singleTop"
-            android:theme="@style/SplashTheme"
+            android:theme="@style/MainTheme"
             android:screenOrientation="portrait">
         </activity>
 
@@ -37,6 +39,8 @@
             android:launchMode="singleTop"
             android:screenOrientation="portrait"/>
         <activity android:name=".ui.zhihu.activity.ZhihuDetailActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="stateHidden|adjustResize"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"/>
         <activity android:name=".ui.zhihu.activity.CommentActivity"
@@ -51,18 +55,42 @@
 
         //Gank
         <activity android:name=".ui.gank.activity.TechDetailActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="stateHidden|adjustResize"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"/>
         <activity android:name=".ui.gank.activity.GirlDetailActivity"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"/>
 
-        <meta-data
-            android:value="YOUR_APP_KEY"
-            android:name="UMENG_APPKEY"/>
-        <meta-data
-            android:value="${UMENG_CHANNEL_VALUE} ID"
-            android:name="UMENG_CHANNEL"/>
+        //掘金
+        <activity android:name=".ui.gold.activity.GoldManagerActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"/>
+
+        //v2ex
+        <activity android:name=".ui.vtex.activity.NodeActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".ui.vtex.activity.NodeListActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".ui.vtex.activity.RepliesActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"/>
+
+        <service android:name=".component.UpdateService"/>
+
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="com.codeest.geeknews.fileprovider"
+            android:grantUriPermissions="true"
+            android:exported="false">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/fileprovidepaths" />
+        </provider>
+
     </application>
 
 </manifest>

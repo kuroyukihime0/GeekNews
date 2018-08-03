@@ -1,47 +1,56 @@
 package com.codeest.geeknews.ui.gank.fragment;
 
-import android.app.ActivityOptions;
-import android.content.Intent;
+import android.support.design.widget.AppBarLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.codeest.geeknews.R;
-import com.codeest.geeknews.base.BaseFragment;
+import com.codeest.geeknews.app.Constants;
+import com.codeest.geeknews.base.RootFragment;
+import com.codeest.geeknews.component.ImageLoader;
 import com.codeest.geeknews.model.bean.GankItemBean;
-import com.codeest.geeknews.presenter.TechPresenter;
-import com.codeest.geeknews.presenter.contract.TechContract;
+import com.codeest.geeknews.presenter.gank.TechPresenter;
+import com.codeest.geeknews.base.contract.gank.TechContract;
 import com.codeest.geeknews.ui.gank.activity.TechDetailActivity;
 import com.codeest.geeknews.ui.gank.adapter.TechAdapter;
-import com.codeest.geeknews.util.DateUtil;
-import com.codeest.geeknews.util.LogUtil;
-import com.codeest.geeknews.util.SnackbarUtil;
-import com.victor.loading.rotate.RotateLoading;
+import com.codeest.geeknews.util.SystemUtil;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
+import jp.wasabeef.glide.transformations.BlurTransformation;
 
 /**
  * Created by codeest on 16/8/19.
  */
 
-public class TechFragment extends BaseFragment<TechPresenter> implements TechContract.View {
+public class TechFragment extends RootFragment<TechPresenter> implements TechContract.View {
 
-    @BindView(R.id.rv_tech_content)
+    @BindView(R.id.view_main)
     RecyclerView rvTechContent;
-    @BindView(R.id.view_loading)
-    RotateLoading viewLoading;
     @BindView(R.id.swipe_refresh)
     SwipeRefreshLayout swipeRefresh;
+    @BindView(R.id.iv_tech_blur)
+    ImageView ivBlur;
+    @BindView(R.id.iv_tech_origin)
+    ImageView ivOrigin;
+    @BindView(R.id.tv_tech_copyright)
+    TextView tvCopyright;
+    @BindView(R.id.tech_appbar)
+    AppBarLayout appbar;
 
     List<GankItemBean> mList;
     TechAdapter mAdapter;
 
     boolean isLoadingMore = false;
     String tech;
+    int type;
 
     @Override
     protected void initInject() {
@@ -55,25 +64,26 @@ public class TechFragment extends BaseFragment<TechPresenter> implements TechCon
 
     @Override
     protected void initEventAndData() {
+        super.initEventAndData();
         mPresenter.getGirlImage();
         mList = new ArrayList<>();
-        tech = getArguments().getString("tech");
+        tech = getArguments().getString(Constants.IT_GANK_TYPE);
+        type = getArguments().getInt(Constants.IT_GANK_TYPE_CODE);
         mAdapter = new TechAdapter(mContext,mList,tech);
         rvTechContent.setLayoutManager(new LinearLayoutManager(mContext));
         rvTechContent.setAdapter(mAdapter);
-        viewLoading.start();
-        mPresenter.getGankData(tech);
+        stateLoading();
+        mPresenter.getGankData(tech, type);
         mAdapter.setOnItemClickListener(new TechAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(int position, View shareView) {
-                Intent intent = new Intent();
-                intent.setClass(mContext, TechDetailActivity.class);
-                intent.putExtra("url",mList.get(position).getUrl());
-                intent.putExtra("title",mList.get(position).getDesc());
-                intent.putExtra("id",mList.get(position).get_id());
-                intent.putExtra("tech",tech);
-                ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(mActivity, shareView, "shareView");
-                mContext.startActivity(intent,options.toBundle());
+                TechDetailActivity.launch(new TechDetailActivity.Builder()
+                        .setContext(mContext)
+                        .setId(mList.get(position).get_id())
+                        .setTitle(mList.get(position).getDesc())
+                        .setUrl(mList.get(position).getUrl())
+                        .setType(type)
+                .setAnimConfig(mActivity, shareView));
             }
         });
         rvTechContent.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -88,38 +98,43 @@ public class TechFragment extends BaseFragment<TechPresenter> implements TechCon
                         mPresenter.getMoreGankData(tech);
                     }
                 }
-                View firstVisibleItem = recyclerView.getChildAt(0);
-                int firstItemPosition = ((LinearLayoutManager) rvTechContent.getLayoutManager()).findFirstVisibleItemPosition();
-                int itemHeight = firstVisibleItem.getHeight();
-                int firstItemBottom = rvTechContent.getLayoutManager().getDecoratedBottom(firstVisibleItem);
-                mAdapter.setTopAlpha(((firstItemPosition + 1) * itemHeight - firstItemBottom) * 2.0 / recyclerView.getChildAt(0).getHeight());
+            }
+        });
+        appbar.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+            @Override
+            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+                if (verticalOffset >= 0) {
+                    swipeRefresh.setEnabled(true);
+                } else {
+                    swipeRefresh.setEnabled(false);
+                    float rate = (float)(SystemUtil.dp2px(mContext, 256) + verticalOffset * 2) / SystemUtil.dp2px(mContext, 256);
+                    if (rate >= 0)
+                    ivOrigin.setAlpha(rate);
+                }
             }
         });
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                mPresenter.getGankData(tech);
+                mPresenter.getGankData(tech, type);
             }
         });
     }
 
     @Override
-    public void showError(String msg) {
+    public void stateError() {
+        super.stateError();
         if(swipeRefresh.isRefreshing()) {
             swipeRefresh.setRefreshing(false);
-        } else {
-            viewLoading.stop();
         }
-        SnackbarUtil.showShort(rvTechContent,msg);
     }
 
     @Override
     public void showContent(List<GankItemBean> list) {
         if(swipeRefresh.isRefreshing()) {
             swipeRefresh.setRefreshing(false);
-        } else {
-            viewLoading.stop();
         }
+        stateMain();
         mList.clear();
         mList.addAll(list);
         mAdapter.notifyDataSetChanged();
@@ -127,15 +142,16 @@ public class TechFragment extends BaseFragment<TechPresenter> implements TechCon
 
     @Override
     public void showMoreContent(List<GankItemBean> list) {
-        viewLoading.stop();
+        stateMain();
         mList.addAll(list);
         mAdapter.notifyDataSetChanged();
         isLoadingMore = false;
     }
 
     @Override
-    public void showGirlImage(String url) {
-        mAdapter.setTopInfo(url,DateUtil.getCurrentDateString());
-        mAdapter.notifyItemChanged(0);
+    public void showGirlImage(String url, String copyright) {
+        ImageLoader.load(mContext, url, ivOrigin);
+        Glide.with(mContext).load(url).bitmapTransform(new BlurTransformation(mContext)).into(ivBlur);
+        tvCopyright.setText(String.format("by: %s",copyright));
     }
 }

@@ -5,13 +5,11 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 
 import com.codeest.geeknews.R;
-import com.codeest.geeknews.base.BaseFragment;
+import com.codeest.geeknews.base.RootFragment;
 import com.codeest.geeknews.model.bean.WXItemBean;
-import com.codeest.geeknews.presenter.WechatPresenter;
-import com.codeest.geeknews.presenter.contract.WechatContract;
+import com.codeest.geeknews.presenter.wechat.WechatPresenter;
+import com.codeest.geeknews.base.contract.wechat.WechatContract;
 import com.codeest.geeknews.ui.wechat.adapter.WechatAdapter;
-import com.codeest.geeknews.util.SnackbarUtil;
-import com.victor.loading.rotate.RotateLoading;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,12 +20,10 @@ import butterknife.BindView;
  * Created by codeest on 16/8/29.
  */
 
-public class WechatMainFragment extends BaseFragment<WechatPresenter> implements WechatContract.View {
+public class WechatMainFragment extends RootFragment<WechatPresenter> implements WechatContract.View {
 
-    @BindView(R.id.rv_wechat_list)
+    @BindView(R.id.view_main)
     RecyclerView rvWechatList;
-    @BindView(R.id.view_loading)
-    RotateLoading viewLoading;
     @BindView(R.id.swipe_refresh)
     SwipeRefreshLayout swipeRefresh;
 
@@ -43,11 +39,12 @@ public class WechatMainFragment extends BaseFragment<WechatPresenter> implements
 
     @Override
     protected int getLayoutId() {
-        return R.layout.fragment_wechat;
+        return R.layout.view_common_list;
     }
 
     @Override
     protected void initEventAndData() {
+        super.initEventAndData();
         mList = new ArrayList<>();
         mAdapter = new WechatAdapter(mContext,mList);
         rvWechatList.setLayoutManager(new LinearLayoutManager(mContext));
@@ -72,7 +69,7 @@ public class WechatMainFragment extends BaseFragment<WechatPresenter> implements
                 mPresenter.getWechatData();
             }
         });
-        viewLoading.start();
+        stateLoading();
         mPresenter.getWechatData();
     }
 
@@ -80,9 +77,8 @@ public class WechatMainFragment extends BaseFragment<WechatPresenter> implements
     public void showContent(List<WXItemBean> list) {
         if(swipeRefresh.isRefreshing()) {
             swipeRefresh.setRefreshing(false);
-        } else {
-            viewLoading.stop();
         }
+        stateMain();
         mList.clear();
         mList.addAll(list);
         mAdapter.notifyDataSetChanged();
@@ -90,19 +86,17 @@ public class WechatMainFragment extends BaseFragment<WechatPresenter> implements
 
     @Override
     public void showMoreContent(List<WXItemBean> list) {
-        viewLoading.stop();
+        stateMain();
         mList.addAll(list);
         mAdapter.notifyDataSetChanged();
         isLoadingMore = false;
     }
 
     @Override
-    public void showError(String msg) {
+    public void stateError() {
+        super.stateError();
         if(swipeRefresh.isRefreshing()) {
             swipeRefresh.setRefreshing(false);
-        } else {
-            viewLoading.stop();
         }
-        SnackbarUtil.showShort(rvWechatList,msg);
     }
 }

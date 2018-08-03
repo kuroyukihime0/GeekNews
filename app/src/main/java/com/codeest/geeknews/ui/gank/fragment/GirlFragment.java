@@ -8,15 +8,13 @@ import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.view.View;
 
 import com.codeest.geeknews.R;
+import com.codeest.geeknews.app.Constants;
 import com.codeest.geeknews.base.BaseFragment;
 import com.codeest.geeknews.model.bean.GankItemBean;
-import com.codeest.geeknews.presenter.GirlPresenter;
-import com.codeest.geeknews.presenter.contract.GirlContract;
+import com.codeest.geeknews.presenter.gank.GirlPresenter;
+import com.codeest.geeknews.base.contract.gank.GirlContract;
 import com.codeest.geeknews.ui.gank.activity.GirlDetailActivity;
 import com.codeest.geeknews.ui.gank.adapter.GirlAdapter;
-import com.codeest.geeknews.util.SnackbarUtil;
-import com.codeest.geeknews.util.ToastUtil;
-import com.victor.loading.rotate.RotateLoading;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +27,8 @@ import butterknife.BindView;
 
 public class GirlFragment extends BaseFragment<GirlPresenter> implements GirlContract.View {
 
-    @BindView(R.id.rv_girl_content)
+    @BindView(R.id.view_main)
     RecyclerView rvGirlContent;
-    @BindView(R.id.view_loading)
-    RotateLoading viewLoading;
     @BindView(R.id.swipe_refresh)
     SwipeRefreshLayout swipeRefresh;
 
@@ -51,7 +47,7 @@ public class GirlFragment extends BaseFragment<GirlPresenter> implements GirlCon
 
     @Override
     protected int getLayoutId() {
-        return R.layout.fragment_girl;
+        return R.layout.view_common_list;
     }
 
     @Override
@@ -60,6 +56,8 @@ public class GirlFragment extends BaseFragment<GirlPresenter> implements GirlCon
         mAdapter = new GirlAdapter(mContext, mList);
         mStaggeredGridLayoutManager = new StaggeredGridLayoutManager(SPAN_COUNT,StaggeredGridLayoutManager.VERTICAL);
         mStaggeredGridLayoutManager.setGapStrategy(StaggeredGridLayoutManager.GAP_HANDLING_NONE);
+        //fix issue #52 https://github.com/codeestX/GeekNews/issues/52
+        mStaggeredGridLayoutManager.setItemPrefetchEnabled(false);
         rvGirlContent.setLayoutManager(mStaggeredGridLayoutManager);
         rvGirlContent.setAdapter(mAdapter);
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -85,33 +83,30 @@ public class GirlFragment extends BaseFragment<GirlPresenter> implements GirlCon
             public void onItemClickListener(int position, View shareView) {
                 Intent intent = new Intent();
                 intent.setClass(mContext, GirlDetailActivity.class);
-                intent.putExtra("url",mList.get(position).getUrl());
-                intent.putExtra("id",mList.get(position).get_id());
+                intent.putExtra(Constants.IT_GANK_GRIL_URL, mList.get(position).getUrl());
+                intent.putExtra(Constants.IT_GANK_GRIL_ID, mList.get(position).get_id());
                 ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(mActivity, shareView, "shareView");
                 mContext.startActivity(intent,options.toBundle());
             }
         });
-        viewLoading.start();
+        stateLoading();
         mPresenter.getGirlData();
     }
 
     @Override
-    public void showError(String msg) {
+    public void stateError() {
+        super.stateError();
         if (swipeRefresh.isRefreshing()) {
             swipeRefresh.setRefreshing(false);
-        } else {
-            viewLoading.stop();
         }
-        SnackbarUtil.showShort(rvGirlContent,msg);
     }
 
     @Override
     public void showContent(List<GankItemBean> list) {
         if (swipeRefresh.isRefreshing()) {
             swipeRefresh.setRefreshing(false);
-        } else {
-            viewLoading.stop();
         }
+        stateMain();
         mList.clear();
         mList.addAll(list);
         mAdapter.notifyDataSetChanged();
@@ -120,7 +115,6 @@ public class GirlFragment extends BaseFragment<GirlPresenter> implements GirlCon
     @Override
     public void showMoreContent(List<GankItemBean> list) {
         isLoadingMore = false;
-        viewLoading.stop();
         mList.addAll(list);
         for(int i =mList.size() - GirlPresenter.NUM_OF_PAGE ; i < mList.size(); i++) {    //使用notifyDataSetChanged已加载的图片会有闪烁，遂使用inserted逐个插入
             mAdapter.notifyItemInserted(i);

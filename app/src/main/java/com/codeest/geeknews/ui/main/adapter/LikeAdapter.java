@@ -13,10 +13,10 @@ import com.codeest.geeknews.R;
 import com.codeest.geeknews.app.Constants;
 import com.codeest.geeknews.component.ImageLoader;
 import com.codeest.geeknews.model.bean.RealmLikeBean;
-import com.codeest.geeknews.presenter.TechPresenter;
-import com.codeest.geeknews.presenter.WechatPresenter;
+import com.codeest.geeknews.presenter.vtex.VtexPresenter;
 import com.codeest.geeknews.ui.gank.activity.GirlDetailActivity;
 import com.codeest.geeknews.ui.gank.activity.TechDetailActivity;
+import com.codeest.geeknews.ui.vtex.activity.RepliesActivity;
 import com.codeest.geeknews.ui.zhihu.activity.ZhihuDetailActivity;
 
 import java.util.List;
@@ -67,7 +67,11 @@ public class LikeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
             ((ArticleViewHolder) holder).title.setText(mList.get(position).getTitle());
             switch (mList.get(position).getType()) {
                 case Constants.TYPE_ZHIHU:
-                    ImageLoader.load(mContext, mList.get(position).getImage(), ((ArticleViewHolder) holder).image);
+                    if (mList.get(position).getImage() != null) {
+                        ImageLoader.load(mContext, mList.get(position).getImage(), ((ArticleViewHolder) holder).image);
+                    } else {
+                        ((ArticleViewHolder) holder).image.setImageResource(R.mipmap.ic_launcher);
+                    }
                     ((ArticleViewHolder) holder).from.setText("来自 知乎");
                     holder.itemView.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -78,34 +82,34 @@ public class LikeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
                     break;
                 case Constants.TYPE_ANDROID:
                     ((ArticleViewHolder) holder).image.setImageResource(R.mipmap.ic_android);
-                    ((ArticleViewHolder) holder).from.setText("来自 Android");
+                    ((ArticleViewHolder) holder).from.setText("来自 干货");
                     holder.itemView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getImage(),mList.get(holder.getAdapterPosition()).getTitle()
-                                    ,mList.get(holder.getAdapterPosition()).getId(), TechPresenter.TECH_ANDROID);
+                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getUrl(), null, mList.get(holder.getAdapterPosition()).getTitle()
+                                    ,mList.get(holder.getAdapterPosition()).getId(), Constants.TYPE_ANDROID);
                         }
                     });
                     break;
                 case Constants.TYPE_IOS:
                     ((ArticleViewHolder) holder).image.setImageResource(R.mipmap.ic_ios);
-                    ((ArticleViewHolder) holder).from.setText("来自 iOS");
+                    ((ArticleViewHolder) holder).from.setText("来自 干货");
                     holder.itemView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getImage(),mList.get(holder.getAdapterPosition()).getTitle()
-                                    ,mList.get(holder.getAdapterPosition()).getId(), TechPresenter.TECH_IOS);
+                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getUrl(), null, mList.get(holder.getAdapterPosition()).getTitle()
+                                    ,mList.get(holder.getAdapterPosition()).getId(), Constants.TYPE_IOS);
                         }
                     });
                     break;
                 case Constants.TYPE_WEB:
                     ((ArticleViewHolder) holder).image.setImageResource(R.mipmap.ic_web);
-                    ((ArticleViewHolder) holder).from.setText("来自 Web");
+                    ((ArticleViewHolder) holder).from.setText("来自 干货");
                     holder.itemView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getImage(),mList.get(holder.getAdapterPosition()).getTitle()
-                                    ,mList.get(holder.getAdapterPosition()).getId(), TechPresenter.TECH_WEB);
+                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getUrl(), null ,mList.get(holder.getAdapterPosition()).getTitle()
+                                    ,mList.get(holder.getAdapterPosition()).getId(), Constants.TYPE_WEB);
                         }
                     });
                     break;
@@ -115,8 +119,37 @@ public class LikeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
                     holder.itemView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getImage(),mList.get(holder.getAdapterPosition()).getTitle()
-                                    ,mList.get(holder.getAdapterPosition()).getId(), WechatPresenter.TECH_WECHAT);
+                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getUrl(), mList.get(holder.getAdapterPosition()).getImage(), mList.get(holder.getAdapterPosition()).getTitle()
+                                    ,mList.get(holder.getAdapterPosition()).getId(), Constants.TYPE_WECHAT);
+                        }
+                    });
+                    break;
+                case Constants.TYPE_GOLD:
+                    if (mList.get(position).getImage() != null) {
+                        ImageLoader.load(mContext, mList.get(position).getImage(), ((ArticleViewHolder) holder).image);
+                    } else {
+                        ((ArticleViewHolder) holder).image.setImageResource(R.mipmap.ic_launcher);
+                    }
+                    ((ArticleViewHolder) holder).from.setText("来自 掘金");
+                    holder.itemView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            gotoTechDetail(mList.get(holder.getAdapterPosition()).getUrl(), mList.get(holder.getAdapterPosition()).getImage(), mList.get(holder.getAdapterPosition()).getTitle()
+                                    ,mList.get(holder.getAdapterPosition()).getId(), Constants.TYPE_GOLD);
+                        }
+                    });
+                    break;
+                case Constants.TYPE_VTEX:
+                    if (mList.get(position).getImage() != null) {
+                        ImageLoader.load(mContext, VtexPresenter.parseImg(mList.get(position).getImage()), ((ArticleViewHolder) holder).image);
+                    } else {
+                        ((ArticleViewHolder) holder).image.setImageResource(R.mipmap.ic_launcher);
+                    }
+                    ((ArticleViewHolder) holder).from.setText("来自 V2EX");
+                    holder.itemView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            gotoVtexDetail(mList.get(holder.getAdapterPosition()).getId());
                         }
                     });
                     break;
@@ -164,28 +197,36 @@ public class LikeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
         }
     }
 
-    public void gotoDailyDetail(int id) {
+    private void gotoDailyDetail(int id) {
         Intent intent = new Intent();
         intent.setClass(mContext, ZhihuDetailActivity.class);
-        intent.putExtra("id",id);
+        intent.putExtra(Constants.IT_ZHIHU_DETAIL_ID, id);
+        intent.putExtra(Constants.IT_ZHIHU_DETAIL_TRANSITION, true);
         mContext.startActivity(intent);
     }
 
-    public void gotoTechDetail(String url,String title,String id,String tech) {
-        Intent intent = new Intent();
-        intent.setClass(mContext, TechDetailActivity.class);
-        intent.putExtra("url",url);
-        intent.putExtra("title",title);
-        intent.putExtra("id",id);
-        intent.putExtra("tech",tech);
-        mContext.startActivity(intent);
+    private void gotoTechDetail(String url, String imgUrl, String title, String id, int type) {
+        TechDetailActivity.launch(new TechDetailActivity.Builder()
+                .setContext(mContext)
+                .setUrl(url)
+                .setImgUrl(imgUrl)
+                .setId(id)
+                .setTitle(title)
+                .setType(type));
     }
 
-    public void gotoGirlDetail(String url,String id) {
+    private void gotoGirlDetail(String url,String id) {
         Intent intent = new Intent();
         intent.setClass(mContext, GirlDetailActivity.class);
-        intent.putExtra("url",url);
-        intent.putExtra("id",id);
+        intent.putExtra(Constants.IT_GANK_GRIL_URL, url);
+        intent.putExtra(Constants.IT_GANK_GRIL_ID, id);
+        mContext.startActivity(intent);
+    }
+
+    private void gotoVtexDetail(String topicId) {
+        Intent intent = new Intent();
+        intent.setClass(mContext, RepliesActivity.class);
+        intent.putExtra(Constants.IT_VTEX_TOPIC_ID,topicId);
         mContext.startActivity(intent);
     }
 }

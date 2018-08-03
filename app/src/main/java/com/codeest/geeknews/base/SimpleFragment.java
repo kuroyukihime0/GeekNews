@@ -8,9 +8,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.umeng.analytics.MobclickAgent;
-
 import butterknife.ButterKnife;
+import butterknife.Unbinder;
 import me.yokeyword.fragmentation.SupportFragment;
 
 /**
@@ -23,7 +22,8 @@ public abstract class SimpleFragment extends SupportFragment {
     protected View mView;
     protected Activity mActivity;
     protected Context mContext;
-    private boolean isInited = false;
+    private Unbinder mUnBinder;
+    protected boolean isInited = false;
 
     @Override
     public void onAttach(Context context) {
@@ -42,44 +42,20 @@ public abstract class SimpleFragment extends SupportFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        ButterKnife.bind(this, view);
-        if (savedInstanceState == null) {
-            if (!isHidden()) {
-                isInited = true;
-                initEventAndData();
-            }
-        } else {
-            if (!isSupportHidden()) {
-                isInited = true;
-                initEventAndData();
-            }
-        }
+        mUnBinder = ButterKnife.bind(this, view);
     }
 
     @Override
-    public void onHiddenChanged(boolean hidden) {
-        super.onHiddenChanged(hidden);
-        if (!isInited && !hidden) {
-            isInited = true;
-            initEventAndData();
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        MobclickAgent.onPageStart("Fragment");
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        MobclickAgent.onPageEnd("Fragment");
+    public void onLazyInitView(@Nullable Bundle savedInstanceState) {
+        super.onLazyInitView(savedInstanceState);
+        isInited = true;
+        initEventAndData();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        mUnBinder.unbind();
     }
 
     protected abstract int getLayoutId();

@@ -6,26 +6,24 @@ import android.support.v4.widget.NestedScrollView;
 import android.support.v7.widget.Toolbar;
 import android.transition.Transition;
 import android.view.KeyEvent;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.codeest.geeknews.R;
-import com.codeest.geeknews.base.BaseActivity;
+import com.codeest.geeknews.app.Constants;
+import com.codeest.geeknews.base.RootActivity;
+import com.codeest.geeknews.base.contract.zhihu.ZhihuDetailContract;
 import com.codeest.geeknews.component.ImageLoader;
 import com.codeest.geeknews.model.bean.DetailExtraBean;
 import com.codeest.geeknews.model.bean.ZhihuDetailBean;
-import com.codeest.geeknews.presenter.ZhihuDetailPresenter;
-import com.codeest.geeknews.presenter.contract.ZhihuDetailContract;
+import com.codeest.geeknews.presenter.zhihu.ZhihuDetailPresenter;
 import com.codeest.geeknews.util.HtmlUtil;
 import com.codeest.geeknews.util.ShareUtil;
-import com.codeest.geeknews.util.SharedPreferenceUtil;
-import com.codeest.geeknews.util.SnackbarUtil;
 import com.codeest.geeknews.util.SystemUtil;
-import com.victor.loading.rotate.RotateLoading;
+import com.tencent.smtt.sdk.WebSettings;
+import com.tencent.smtt.sdk.WebView;
+import com.tencent.smtt.sdk.WebViewClient;
 
 import net.opacapp.multilinecollapsingtoolbar.CollapsingToolbarLayout;
 
@@ -36,7 +34,7 @@ import butterknife.OnClick;
  * Created by codeest on 16/8/13.
  */
 
-public class ZhihuDetailActivity extends BaseActivity<ZhihuDetailPresenter> implements ZhihuDetailContract.View {
+public class ZhihuDetailActivity extends RootActivity<ZhihuDetailPresenter> implements ZhihuDetailContract.View {
 
     @BindView(R.id.detail_bar_image)
     ImageView detailBarImage;
@@ -46,10 +44,8 @@ public class ZhihuDetailActivity extends BaseActivity<ZhihuDetailPresenter> impl
     Toolbar viewToolbar;
     @BindView(R.id.clp_toolbar)
     CollapsingToolbarLayout clpToolbar;
-    @BindView(R.id.wv_detail_content)
+    @BindView(R.id.view_main)
     WebView wvDetailContent;
-    @BindView(R.id.view_loading)
-    RotateLoading viewLoading;
     @BindView(R.id.nsv_scroller)
     NestedScrollView nsvScroller;
     @BindView(R.id.tv_detail_bottom_like)
@@ -72,6 +68,7 @@ public class ZhihuDetailActivity extends BaseActivity<ZhihuDetailPresenter> impl
     boolean isBottomShow = true;
     boolean isImageShow = false;
     boolean isTransitionEnd = false;
+    boolean isNotTransition = false;
 
     @Override
     protected void initInject() {
@@ -85,18 +82,20 @@ public class ZhihuDetailActivity extends BaseActivity<ZhihuDetailPresenter> impl
 
     @Override
     protected void initEventAndData() {
+        super.initEventAndData();
         setToolBar(viewToolbar,"");
         Intent intent = getIntent();
-        id = intent.getExtras().getInt("id");
+        id = intent.getExtras().getInt(Constants.IT_ZHIHU_DETAIL_ID);
+        isNotTransition = intent.getBooleanExtra("isNotTransition",false);
         mPresenter.queryLikeData(id);
         mPresenter.getDetailData(id);
         mPresenter.getExtraData(id);
-        viewLoading.start();
+        stateLoading();
         WebSettings settings = wvDetailContent.getSettings();
-        if (SharedPreferenceUtil.getNoImageState()) {
+        if (mPresenter.getNoImageState()) {
             settings.setBlockNetworkImage(true);
         }
-        if (SharedPreferenceUtil.getAutoCacheState()) {
+        if (mPresenter.getAutoCacheState()) {
             settings.setAppCacheEnabled(true);
             settings.setDomStorageEnabled(true);
             settings.setDatabaseEnabled(true);
@@ -160,11 +159,15 @@ public class ZhihuDetailActivity extends BaseActivity<ZhihuDetailPresenter> impl
 
     @Override
     public void showContent(ZhihuDetailBean zhihuDetailBean) {
-        viewLoading.stop();
+        stateMain();
         imgUrl = zhihuDetailBean.getImage();
         shareUrl = zhihuDetailBean.getShare_url();
-        if (!isImageShow && isTransitionEnd) {
+        if (isNotTransition) {
             ImageLoader.load(mContext, zhihuDetailBean.getImage(), detailBarImage);
+        } else {
+            if (!isImageShow && isTransitionEnd) {
+                ImageLoader.load(mContext, zhihuDetailBean.getImage(), detailBarImage);
+            }
         }
         clpToolbar.setTitle(zhihuDetailBean.getTitle());
         detailBarCopyright.setText(zhihuDetailBean.getImage_source());
@@ -174,7 +177,6 @@ public class ZhihuDetailActivity extends BaseActivity<ZhihuDetailPresenter> impl
 
     @Override
     public void showExtraInfo(DetailExtraBean detailExtraBean) {
-        viewLoading.stop();
         tvDetailBottomLike.setText(String.format("%d个赞",detailExtraBean.getPopularity()));
         tvDetailBottomComment.setText(String.format("%d条评论",detailExtraBean.getComments()));
         allNum = detailExtraBean.getComments();
@@ -195,20 +197,14 @@ public class ZhihuDetailActivity extends BaseActivity<ZhihuDetailPresenter> impl
         return super.onKeyDown(keyCode, event);
     }
 
-    @Override
-    public void showError(String msg) {
-        viewLoading.stop();
-        SnackbarUtil.showShort(getWindow().getDecorView(),msg);
-    }
-
     @OnClick(R.id.tv_detail_bottom_comment)
     void gotoComment() {
         Intent intent = getIntent();
         intent.setClass(this,CommentActivity.class);
-        intent.putExtra("id",id);
-        intent.putExtra("allNum",allNum);
-        intent.putExtra("shortNum",shortNum);
-        intent.putExtra("longNum",longNum);
+        intent.putExtra(Constants.IT_ZHIHU_COMMENT_ID, id);
+        intent.putExtra(Constants.IT_ZHIHU_COMMENT_ALL_NUM, allNum);
+        intent.putExtra(Constants.IT_ZHIHU_COMMENT_SHORT_NUM, shortNum);
+        intent.putExtra(Constants.IT_ZHIHU_COMMENT_LONG_NUM, longNum);
         startActivity(intent);
     }
 

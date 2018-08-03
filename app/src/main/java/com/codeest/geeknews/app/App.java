@@ -3,22 +3,22 @@ package com.codeest.geeknews.app;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.support.multidex.MultiDex;
 import android.support.v7.app.AppCompatDelegate;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.WindowManager;
 
-import com.codeest.geeknews.component.CrashHandler;
+import com.codeest.geeknews.component.InitializeService;
 import com.codeest.geeknews.di.component.AppComponent;
 import com.codeest.geeknews.di.component.DaggerAppComponent;
 import com.codeest.geeknews.di.module.AppModule;
-import com.codeest.geeknews.widget.AppBlockCanaryContext;
-import com.github.moduth.blockcanary.BlockCanary;
-import com.orhanobut.logger.Logger;
-import com.squareup.leakcanary.LeakCanary;
+import com.codeest.geeknews.di.module.HttpModule;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import io.realm.Realm;
 
 /**
  * Created by codeest on 2016/8/2.
@@ -26,6 +26,7 @@ import java.util.Set;
 public class App extends Application{
 
     private static App instance;
+    public static AppComponent appComponent;
     private Set<Activity> allActivities;
 
     public static int SCREEN_WIDTH = -1;
@@ -50,22 +51,21 @@ public class App extends Application{
         //初始化屏幕宽高
         getScreenSize();
 
-        //初始化日志
-        Logger.init(getPackageName()).hideThreadInfo();
+        //初始化数据库
+        Realm.init(getApplicationContext());
 
-        //初始化错误收集
-        CrashHandler.init(new CrashHandler(getApplicationContext()));
+        //在子线程中完成其他初始化
+        InitializeService.start(this);
+    }
 
-        //初始化内存泄漏检测
-        LeakCanary.install(this);
-
-        //初始化过度绘制检测
-        BlockCanary.install(this, new AppBlockCanaryContext()).start();
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        MultiDex.install(this);
     }
 
     public void addActivity(Activity act) {
         if (allActivities == null) {
-            allActivities = new HashSet<Activity>();
+            allActivities = new HashSet<>();
         }
         allActivities.add(act);
     }
@@ -105,8 +105,12 @@ public class App extends Application{
     }
 
     public static AppComponent getAppComponent(){
-        return DaggerAppComponent.builder()
-                .appModule(new AppModule(instance))
-                .build();
+        if (appComponent == null) {
+            appComponent = DaggerAppComponent.builder()
+                    .appModule(new AppModule(instance))
+                    .httpModule(new HttpModule())
+                    .build();
+        }
+        return appComponent;
     }
 }

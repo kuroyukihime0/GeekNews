@@ -1,11 +1,12 @@
 package com.codeest.geeknews.model.db;
 
-import android.content.Context;
-
+import com.codeest.geeknews.model.bean.GoldManagerBean;
 import com.codeest.geeknews.model.bean.ReadStateBean;
 import com.codeest.geeknews.model.bean.RealmLikeBean;
 
 import java.util.List;
+
+import javax.inject.Inject;
 
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
@@ -15,14 +16,15 @@ import io.realm.RealmResults;
  * Created by codeest on 16/8/16.
  */
 
-public class RealmHelper {
+public class RealmHelper implements DBHelper {
 
     private static final String DB_NAME = "myRealm.realm";
 
     private Realm mRealm;
 
-    public RealmHelper(Context mContext) {
-        mRealm = Realm.getInstance(new RealmConfiguration.Builder(mContext)
+    @Inject
+    public RealmHelper() {
+        mRealm = Realm.getInstance(new RealmConfiguration.Builder()
                 .deleteRealmIfMigrationNeeded()
                 .name(DB_NAME)
                 .build());
@@ -31,11 +33,14 @@ public class RealmHelper {
     /**
      * 增加 阅读记录
      * @param id
+     * 使用@PrimaryKey注解后copyToRealm需要替换为copyToRealmOrUpdate
      */
+    @Override
     public void insertNewsId(int id) {
-        mRealm.beginTransaction();
-        ReadStateBean bean = mRealm.createObject(ReadStateBean.class);
+        ReadStateBean bean = new ReadStateBean();
         bean.setId(id);
+        mRealm.beginTransaction();
+        mRealm.copyToRealmOrUpdate(bean);
         mRealm.commitTransaction();
     }
 
@@ -44,6 +49,7 @@ public class RealmHelper {
      * @param id
      * @return
      */
+    @Override
     public boolean queryNewsId(int id) {
         RealmResults<ReadStateBean> results = mRealm.where(ReadStateBean.class).findAll();
         for(ReadStateBean item : results) {
@@ -58,9 +64,10 @@ public class RealmHelper {
      * 增加 收藏记录
      * @param bean
      */
+    @Override
     public void insertLikeBean(RealmLikeBean bean) {
         mRealm.beginTransaction();
-        mRealm.copyToRealm(bean);
+        mRealm.copyToRealmOrUpdate(bean);
         mRealm.commitTransaction();
     }
 
@@ -68,10 +75,13 @@ public class RealmHelper {
      * 删除 收藏记录
      * @param id
      */
+    @Override
     public void deleteLikeBean(String id) {
         RealmLikeBean data = mRealm.where(RealmLikeBean.class).equalTo("id",id).findFirst();
         mRealm.beginTransaction();
-        data.deleteFromRealm();
+        if (data != null) {
+            data.deleteFromRealm();
+        }
         mRealm.commitTransaction();
     }
 
@@ -80,6 +90,7 @@ public class RealmHelper {
      * @param id
      * @return
      */
+    @Override
     public boolean queryLikeId(String id) {
         RealmResults<RealmLikeBean> results = mRealm.where(RealmLikeBean.class).findAll();
         for(RealmLikeBean item : results) {
@@ -90,6 +101,7 @@ public class RealmHelper {
         return false;
     }
 
+    @Override
     public List<RealmLikeBean> getLikeList() {
         //使用findAllSort ,先findAll再result.sort无效
         RealmResults<RealmLikeBean> results = mRealm.where(RealmLikeBean.class).findAllSorted("time");
@@ -102,6 +114,7 @@ public class RealmHelper {
      * @param time
      * @param isPlus
      */
+    @Override
     public void changeLikeTime(String id ,long time, boolean isPlus) {
         RealmLikeBean bean = mRealm.where(RealmLikeBean.class).equalTo("id", id).findFirst();
         mRealm.beginTransaction();
@@ -111,5 +124,32 @@ public class RealmHelper {
             bean.setTime(--time);
         }
         mRealm.commitTransaction();
+    }
+
+    /**
+     * 更新 掘金首页管理列表
+     * @param bean
+     */
+    @Override
+    public void updateGoldManagerList(GoldManagerBean bean) {
+        GoldManagerBean data = mRealm.where(GoldManagerBean.class).findFirst();
+        mRealm.beginTransaction();
+        if (data != null) {
+            data.deleteFromRealm();
+        }
+        mRealm.copyToRealm(bean);
+        mRealm.commitTransaction();
+    }
+
+    /**
+     * 获取 掘金首页管理列表
+     * @return
+     */
+    @Override
+    public GoldManagerBean getGoldManagerList() {
+        GoldManagerBean bean = mRealm.where(GoldManagerBean.class).findFirst();
+        if (bean == null)
+            return null;
+        return mRealm.copyFromRealm(bean);
     }
 }

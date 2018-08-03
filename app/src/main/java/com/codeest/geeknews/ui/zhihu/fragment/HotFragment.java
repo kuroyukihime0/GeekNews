@@ -8,15 +8,13 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
 import com.codeest.geeknews.R;
-import com.codeest.geeknews.base.BaseFragment;
+import com.codeest.geeknews.app.Constants;
+import com.codeest.geeknews.base.RootFragment;
 import com.codeest.geeknews.model.bean.HotListBean;
-import com.codeest.geeknews.presenter.HotPresenter;
-import com.codeest.geeknews.presenter.contract.HotContract;
+import com.codeest.geeknews.presenter.zhihu.HotPresenter;
+import com.codeest.geeknews.base.contract.zhihu.HotContract;
 import com.codeest.geeknews.ui.zhihu.activity.ZhihuDetailActivity;
 import com.codeest.geeknews.ui.zhihu.adapter.HotAdapter;
-import com.codeest.geeknews.util.SnackbarUtil;
-import com.codeest.geeknews.util.ToastUtil;
-import com.victor.loading.rotate.RotateLoading;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,12 +24,10 @@ import butterknife.BindView;
 /**
  * Created by codeest on 2016/8/11.
  */
-public class HotFragment extends BaseFragment<HotPresenter> implements HotContract.View {
+public class HotFragment extends RootFragment<HotPresenter> implements HotContract.View {
 
-    @BindView(R.id.rv_hot_content)
+    @BindView(R.id.view_main)
     RecyclerView rvHotContent;
-    @BindView(R.id.view_loading)
-    RotateLoading viewLoading;
     @BindView(R.id.swipe_refresh)
     SwipeRefreshLayout swipeRefresh;
 
@@ -45,13 +41,14 @@ public class HotFragment extends BaseFragment<HotPresenter> implements HotContra
 
     @Override
     protected int getLayoutId() {
-        return R.layout.fragment_hot;
+        return R.layout.view_common_list;
     }
 
     @Override
     protected void initEventAndData() {
+        super.initEventAndData();
         mList = new ArrayList<>();
-        viewLoading.start();
+        stateLoading();
         mAdapter = new HotAdapter(mContext,mList);
         rvHotContent.setVisibility(View.INVISIBLE);
         rvHotContent.setLayoutManager(new LinearLayoutManager(mContext));
@@ -71,7 +68,7 @@ public class HotFragment extends BaseFragment<HotPresenter> implements HotContra
                 mAdapter.notifyItemChanged(position);
                 Intent intent = new Intent();
                 intent.setClass(mContext, ZhihuDetailActivity.class);
-                intent.putExtra("id",mList.get(position).getNews_id());
+                intent.putExtra(Constants.IT_ZHIHU_DETAIL_ID, mList.get(position).getNews_id());
                 ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(mActivity, shareView, "shareView");
                 mContext.startActivity(intent,options.toBundle());
             }
@@ -79,22 +76,19 @@ public class HotFragment extends BaseFragment<HotPresenter> implements HotContra
     }
 
     @Override
-    public void showError(String msg) {
+    public void stateError() {
+        super.stateError();
         if(swipeRefresh.isRefreshing()) {
             swipeRefresh.setRefreshing(false);
-        } else {
-            viewLoading.stop();
         }
-        SnackbarUtil.showShort(rvHotContent,msg);
     }
 
     @Override
     public void showContent(HotListBean hotListBean) {
         if (swipeRefresh.isRefreshing()) {
             swipeRefresh.setRefreshing(false);
-        } else {
-            viewLoading.stop();
         }
+        stateMain();
         rvHotContent.setVisibility(View.VISIBLE);
         mList.clear();
         mList.addAll(hotListBean.getRecent());
